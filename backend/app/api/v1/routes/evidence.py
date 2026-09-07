@@ -1,0 +1,109 @@
+import uuid
+from fastapi import APIRouter, Depends, Query, status
+from app.core.security import AuthenticatedUser
+from app.dependencies.auth import get_current_user
+from app.dependencies.services import get_evidence_service
+from app.schemas.common import PaginatedResponse
+from app.schemas.evidence import EvidencePublic, SelfReportClaimCreate, SelfReportClaimUpdate
+from app.services.evidence_service import EvidenceService
+
+router = APIRouter(prefix="/evidence", tags=["Skill Evidence"])
+
+
+@router.post(
+    "/self-report",
+    response_model=EvidencePublic,
+    status_code=status.HTTP_201_CREATED,
+    summary="Self-report a skill claim",
+    description="Allows the authenticated learner to add a skill to their profile as a self-reported claim (unverified until reviewed).",
+)
+async def self_report_claim(
+    data: SelfReportClaimCreate,
+    current_user: AuthenticatedUser = Depends(get_current_user),
+    evidence_service: EvidenceService = Depends(get_evidence_service),
+) -> EvidencePublic:
+    evidence = await evidence_service.create_self_reported_claim(
+        profile_id=uuid.UUID(current_user.id),
+        skill_id=data.skill_id,
+        proficiency=data.proficiency,
+        notes=data.notes,
+    )
+    return EvidencePublic.model_validate(evidence)
+
+
+@router.patch(
+    "/{evidence_id}",
+    response_model=EvidencePublic,
+    status_code=status.HTTP_200_OK,
+    summary="Update a self-reported skill",
+)
+async def update_self_reported_claim(
+    evidence_id: uuid.UUID,
+    data: SelfReportClaimUpdate,
+    current_user: AuthenticatedUser = Depends(get_current_user),
+    evidence_service: EvidenceService = Depends(get_evidence_service),
+) -> EvidencePublic:
+    evidence = await evidence_service.update_self_reported_claim(
+        evidence_id=evidence_id,
+        profile_id=uuid.UUID(current_user.id),
+        data=data,
+    )
+    return EvidencePublic.model_validate(evidence)
+
+
+@router.delete(
+    "/{evidence_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete a self-reported skill",
+)
+async def delete_self_reported_claim(
+    evidence_id: uuid.UUID,
+    current_user: AuthenticatedUser = Depends(get_current_user),
+    evidence_service: EvidenceService = Depends(get_evidence_service),
+) -> None:
+    await evidence_service.delete_self_reported_claim(
+        evidence_id=evidence_id,
+        profile_id=uuid.UUID(current_user.id),
+    )
+
+
+@router.get(
+    "",
+    response_model=PaginatedResponse[EvidencePublic],
+    status_code=status.HTTP_200_OK,
+    summary="List skill evidence records",
+    description="Returns a paginated list of skill evidence records demonstrating practical capability and assessment outcomes.",
+)
+async def list_evidence(
+    profile_id: uuid.UUID | None = Query(default=None, description="Target profile ID (defaults to current user)"),
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=20, ge=1, le=100),
+    current_user: AuthenticatedUser = Depends(get_current_user),
+    evidence_service: EvidenceService = Depends(get_evidence_service),
+) -> PaginatedResponse[EvidencePublic]:
+    target_profile = profile_id if profile_id is not None else uuid.UUID(current_user.id)
+    return await evidence_service.list_profile_evidence(
+        profile_id=target_profile,
+        current_user=current_user,
+        page=page,
+        page_size=page_size,
+    )
+
+
+@router.get(
+    "/{evidence_id}",
+    response_model=EvidencePublic,
+    status_code=status.HTTP_200_OK,
+    summary="Get evidence detail",
+    description="Returns complete provenance, skill linkage, and verification status for a specific evidence item.",
+)
+async def get_evidence(
+    evidence_id: uuid.UUID,
+    current_user: AuthenticatedUser = Depends(get_current_user),
+    evidence_service: EvidenceService = Depends(get_evidence_service),
+) -> EvidencePublic:
+    evidence = await evidence_service.get_evidence_detail(
+        evidence_id=evidence_id,
+        current_user=current_user,
+    )
+    return EvidencePublic.model_validate(evidence)
