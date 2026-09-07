@@ -1,0 +1,7 @@
+﻿
+NEXT_PUBLIC_API_BASE_URL=https://backend-production-f10a.up.railway.app
+
+API_BASE_URL=https://backend-production-f10a.up.railway.app
+NEXT_PUBLIC_SUPABASE_URL=https://ykkaogqgqetamefdjriz.supabase.co
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable__1jKrFXmZBbraZDiMojnfQ_P_A91RuK
+SUPABASE_JWT_SECRET=MXyNO18AP07FCNzVSVrQsYX5DowQ5AAxyDNT43ZQDVNwZ5xk/8OjrGkzHi8+DIr5pdyL+Lggzz0STXF5NAFmVQ==
