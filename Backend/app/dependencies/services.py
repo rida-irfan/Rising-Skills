@@ -1,5 +1,6 @@
 from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
+from app.core.config import Settings, get_settings
 from app.dependencies.database import get_db
 from app.repositories.analytics_repo import AnalyticsRepository
 from app.repositories.application_repo import ApplicationRepository
@@ -40,6 +41,33 @@ from app.services.role_service import RoleService
 from app.services.skill_service import SkillService
 from app.services.submission_service import SubmissionService
 from app.services.verification_service import VerificationService
+
+
+def get_ai_service(
+    settings: Settings = Depends(get_settings),
+):
+    """
+    Construct the AIService with the configured AI provider.
+
+    Returns None when AI is disabled or not configured, allowing dependent
+    services to degrade gracefully while still serving deterministic data.
+
+    Returns None when:
+    - AI_ENABLED is False (feature disabled)
+    - GROQ_API_KEY is missing (provider not configured)
+    """
+    from app.ai.groq_client import GroqProvider
+    from app.ai.service import AIService
+
+    if not settings.AI_ENABLED:
+        return None
+
+    try:
+        provider = GroqProvider(settings)
+    except Exception:
+        return None
+
+    return AIService(provider)
 
 
 def get_profile_service(session: AsyncSession = Depends(get_db)) -> ProfileService:
@@ -158,3 +186,18 @@ def get_feedback_service(session: AsyncSession = Depends(get_db)) -> FeedbackSer
 def get_analytics_service(session: AsyncSession = Depends(get_db)) -> AnalyticsService:
     repo = AnalyticsRepository(session)
     return AnalyticsService(repo)
+
+
+def get_skill_gap_service(
+    session: AsyncSession = Depends(get_db),
+    ai_service=Depends(get_ai_service),
+):
+    """Construct SkillGapService with matching repository and optional AI service.
+
+    When ai_service is None (AI disabled or misconfigured), SkillGapService
+    still serves deterministic match data with ai_explanation=null.
+    """
+    from app.services.skill_gap_service import SkillGapService
+
+    matching_repo = MatchingRepository(session)
+    return SkillGapService(matching_repo, ai_service)

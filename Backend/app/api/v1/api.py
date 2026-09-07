@@ -1,5 +1,6 @@
 from fastapi import APIRouter
 from app.api.v1.routes import (
+    ai_insights,
     analytics,
     applications,
     assessments,
@@ -39,3 +40,4 @@ api_router.include_router(matches.router)
 api_router.include_router(experiences.router)
 api_router.include_router(notifications.router)
 api_router.include_router(analytics.router)
+api_router.include_router(ai_insights.router)

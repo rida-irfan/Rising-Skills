@@ -38,6 +38,12 @@ class Settings(BaseSettings):
     SUPABASE_SERVICE_ROLE_KEY: str = "your-supabase-service-role-key"
     SUPABASE_JWT_SECRET: str = "your-supabase-jwt-secret"
 
+    # AI Feature Configuration
+    AI_ENABLED: bool = Field(
+        default=True,
+        description="Master toggle for AI-powered features. When disabled, AI endpoints degrade gracefully.",
+    )
+
     # AI Configuration (Groq LPU Inference)
     GROQ_API_KEY: str | None = None
     GROQ_MODEL: str = "llama-3.3-70b-versatile"
